@@ -1,1 +1,161 @@
+mkdir -p skills/vulnerability-analysis agent/knowledge
 
+cat << 'EOF' > skills/vulnerability-analysis/SKILL.md
+---
+name: vulnerability-analysis
+description: Roteiro estruturado para análise de vulnerabilidades, avaliação de risco (impacto e probabilidade) e orientação defensiva de correção.
+---
+
+# Skill: Análise de Vulnerabilidades e Remediação Defensiva
+
+## Objetivo
+Atuar como um especialista em Application Security (AppSec) e Defesa Cibernética, analisando códigos, arquiteturas ou cenários expostos sem fornecer exploits ofensivos prontos ou comandos destrutivos.
+
+## Regras de Execução (Fluxo Obrigatório)
+
+1. **Coleta de Contexto Antes de Agir:**
+   - Se o usuário descrever um cenário de infraestrutura, servidor ou aplicação sem detalhes suficientes (ex: versão do sistema, exposição de rede, firewall ativo, finalidade do ambiente), **faça de 2 a 4 perguntas objetivas de contexto** antes de sugerir qualquer comando ou alteração.
+
+2. **Identificação e Mapeamento:**
+   - Identifique a classe da vulnerabilidade (ex: CWE-89 SQL Injection, Exposição de Serviços, Falha de Controle de Acesso).
+   - Mapeie a técnica relacionada no framework **MITRE ATT&CK** (ex: *T1190 - Exploit Public-Facing Application*).
+
+3. **Avaliação de Risco:**
+   - Avalie separadamente:
+     - **Probabilidade:** Baixa, Média ou Alta (justifique com base na superfície de ataque).
+     - **Impacto:** Avalie os danos na Tríade CIA (**Confidencialidade, Integridade e Disponibilidade**).
+     - **Severidade Geral:** Crítica, Alta, Média ou Baixa.
+
+4. **Explicação Conceitual da Exploração (Foco Defensivo):**
+   - Explique *como* e *por que* a falha ocorre logicamente, sem gerar payloads maliciosos reais para ataques em produção.
+
+5. **Orientação de Correção e Mitigação:**
+   - Forneça o código corrigido aplicando boas práticas (ex: consultas parametrizadas, princípio do menor privilégio, validação de entrada).
+   - Indique como validar que a falha foi mitigada.
+EOF
+
+cat << 'EOF' > skills/vulnerability-analysis/README.md
+# Skill: Vulnerability Analysis (`vulnerability-analysis`)
+
+Esta skill especializa o agente para realizar análises estruturadas de segurança ofensiva/defensiva (AppSec e Infraestrutura).
+
+## O que esta skill faz?
+Em vez de entregar respostas genéricas ou comandos imediatos, o agente segue um protocolo de triagem de segurança:
+- Solicita contexto do ambiente antes de recomendar ações;
+- Classifica a falha com base em padrões de mercado (CWE / MITRE ATT&CK);
+- Calcula severidade cruzando **Impacto** (Tríade CIA) e **Probabilidade**;
+- Apresenta correções seguras e boas práticas de validação.
+
+## Como acionar no Hermes
+Exemplos de prompts:
+- *"Analise o arquivo `app.py` em busca de falhas de segurança."*
+- *"Tenho um servidor Ubuntu de laboratório exposto na internet na porta 22 e 80. O que devo fazer?"*
+EOF
+
+cat << 'EOF' > agent/knowledge/security-basics.md
+# Fundamentos de Segurança da Informação
+
+## Conceitos Essenciais
+- **Vulnerabilidade:** Fraqueza ou falha no design, implementação, operação ou controle interno de um sistema que pode ser explorada.
+- **Ameaça (Threat):** Qualquer circunstância ou evento com potencial de causar impacto adverso aos ativos por meio de acesso não autorizado, destruição, divulgação ou modificação de dados.
+- **Risco:** Probabilidade de uma ameaça explorar uma vulnerabilidade específica e o impacto resultante desse evento (Risco = Probabilidade x Impacto).
+
+## Tríade CIA (CID)
+1. **Confidencialidade:** Garantia de que a informação seja acessível apenas por pessoas ou sistemas autorizados (ex: criptografia, controle de acesso).
+2. **Integridade:** Garantia da exatidão, completude e confiabilidade dos dados, prevenindo alterações não autorizadas (ex: hashes, queries parametrizadas, assinaturas digitais).
+3. **Disponibilidade:** Garantia de que sistemas e dados estejam acessíveis e operacionais quando necessários por usuários autorizados (ex: redundância, rate limiting, backups).
+
+## Boas Práticas de Desenvolvimento Seguro (AppSec)
+- **Consultas Parametrizadas (Prepared Statements):** Nunca concatene entradas de usuários diretamente em strings SQL.
+- **Princípio do Menor Privilégio:** Conceda apenas as permissões mínimas necessárias para usuários, processos e bancos de dados.
+- **Defesa em Profundidade:** Implemente múltiplas camadas de controle (firewall, autenticação forte, validação no backend, logs e monitoramento).
+- **Validação e Sanitização de Entrada:** Trate toda entrada externa como não confiável por padrão.
+EOF
+
+cat << 'EOF' >> agent/persona.md
+
+## Especialização em Segurança (AppSec & Defesa)
+Quando atuar em demandas de segurança da informação, análise de código ou infraestrutura:
+- Adote postura analítica, preventiva e educativa;
+- Nunca sugira comandos de alteração em servidores ou sistemas sem antes compreender o contexto do ambiente (exposição, criticidade e objetivo);
+- Estruture suas respostas avaliando impacto, probabilidade, severidade e mapeamento MITRE ATT&CK antes de propor a correção.
+EOF
+
+cat << 'EOF' >> AGENTS.md
+| `vulnerability-analysis` | `skills/vulnerability-analysis/SKILL.md` | Quando o usuário solicitar análise de vulnerabilidades, revisão de segurança de código, avaliação de risco ou proteção de servidores/ambientes expostos. |
+EOF
+
+cat << 'EOF' > app.py
+import sqlite3
+
+
+def init_db():
+    conn = sqlite3.connect(":memory:")
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
+    cursor.execute("INSERT INTO users (username, password) VALUES ('admin', 'S3nh@Sup3rS3cr3t@')")
+    conn.commit()
+    return conn
+
+
+# ==============================================================================
+# ETAPA 2: Código Vulnerável a SQL Injection (CWE-89) — Usado apenas para teste
+# ==============================================================================
+def login_vulneravel(conn, username, password):
+    cursor = conn.cursor()
+    # FALHA: Concatenação direta permite bypass com "' OR '1'='1"
+    query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
+    cursor.execute(query)
+    return cursor.fetchone()
+
+
+# ==============================================================================
+# ETAPA 3: Código Corrigido (Consulta Parametrizada / Prepared Statement)
+# ==============================================================================
+def login_seguro(conn, username, password):
+    cursor = conn.cursor()
+    # CORREÇÃO: Uso de placeholders (?) impede que a entrada altere a estrutura SQL
+    query = "SELECT * FROM users WHERE username = ? AND password = ?"
+    cursor.execute(query, (username, password))
+    return cursor.fetchone()
+
+
+if __name__ == "__main__":
+    db = init_db()
+
+    print("--- Teste com Credenciais Inválidas / Tentativa de SQLi ---")
+    payload_malicioso = "' OR '1'='1"
+    print("Resultado Login Seguro:", login_seguro(db, "admin", payload_malicioso))
+
+    print("\n--- Teste com Credenciais Válidas ---")
+    print("Resultado Login Seguro:", login_seguro(db, "admin", "S3nh@Sup3rS3cr3t@"))
+EOF
+
+cat << 'EOF' > README.md
+# 🛡️ DIO Agent — Especialização em AppSec & Análise de Vulnerabilidades
+
+Repositório desenvolvido para o desafio prático da **DIO**, estendendo o agente **Hermes** com habilidades defensivas de segurança da informação, análise de vulnerabilidades, avaliação de risco e remediação segura.
+
+## 🚀 O Que Foi Implementado
+
+- **Skill `vulnerability-analysis` (`skills/vulnerability-analysis/SKILL.md`):** Roteiro estruturado que orienta o agente a coletar contexto antes de sugerir comandos, mapear técnicas no **MITRE ATT&CK**, calcular severidade (Probabilidade x Impacto) e propor correções seguras.
+- **Base de Conhecimento (`agent/knowledge/security-basics.md`):** Referência sobre vulnerabilidade, ameaça, risco, Tríade CIA e boas práticas de desenvolvimento seguro.
+- **Persona e Roteamento (`agent/persona.md` e `AGENTS.md`):** Atualização do comportamento do agente para priorizar triagem de contexto e postura defensiva.
+- **Laboratório Prático (`app.py`):** Demonstração de identificação e mitigação de **SQL Injection (CWE-89)** utilizando consultas parametrizadas.
+
+## 🧪 Evidências de Teste
+
+### 1. Identificação e Correção de SQL Injection (`app.py`)
+- **Vulnerabilidade detectada:** Concatenação direta de variáveis em query SQL (`CWE-89`).
+- **Técnica MITRE ATT&CK:** `T1190` (*Exploit Public-Facing Application*).
+- **Mitigação aplicada:** Substituição por *Prepared Statements* (`?`), neutralizando bypass de autenticação.
+
+### 2. Análise de Cenário Exposto (Servidor Ubuntu)
+- Ao informar um cenário de servidor de laboratório exposto na internet, o agente aplica a regra de **coleta de contexto** (portas abertas, serviços ativos, firewall e dados sensíveis) antes de recomendar comandos de hardening.
+
+## ⚙️ Como Executar Localmente
+
+1. Clone este repositório e acesse a pasta raiz do projeto:
+   ```bash
+   git clone <url-do-seu-repositorio>
+   cd <pasta-do-projeto>
